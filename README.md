@@ -7,6 +7,16 @@ Run the application from:
 
 Then you can test your API using any command-line tool like curl:
 ```
+
+Curl
+curl -X GET "http://127.0.0.1:8000/api/pypi/numpy/1.15.2" -H "accept: application/json"
+Request URL
+
+http://127.0.0.1:8000/api/pypi/numpy/1.15.2
+
+
+
+
 $ curl http://localhost:8080/pets
 [{"id":1,"name":"Fufi","tag":"ABC"},{"id":2,"name":"Garfield","tag":"ABC"},{"id":3,"name":"Puffa","tag":"ABC"}]
 

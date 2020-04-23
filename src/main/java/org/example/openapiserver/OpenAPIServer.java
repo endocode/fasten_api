@@ -43,7 +43,7 @@ public class OpenAPIServer extends AbstractVerticle {
         //        System.out.println("BasicVerticle stopped");
         //    }
 
-        final List<JsonObject> pets = new ArrayList<>(Arrays.asList(
+        final List<JsonObject> metadataResp = new ArrayList<>(Arrays.asList(
                 new JsonObject().put("id", 1).put("name", "Fufi").put("tag", "ABC"),
                 new JsonObject().put("id", 2).put("name", "Garfield").put("tag", "XYZ"),
                 new JsonObject().put("id", 3).put("name", "Puffa")
@@ -51,19 +51,44 @@ public class OpenAPIServer extends AbstractVerticle {
 
         @Override
         public void start(Future<Void> future) {
-            OpenAPI3RouterFactory.create(this.vertx, "petstore.yaml", ar -> {
+            OpenAPI3RouterFactory.create(this.vertx, "openapispec.json", ar -> {
                 if (ar.succeeded()) {
                     OpenAPI3RouterFactory routerFactory = ar.result();
 
                     // Add routes handlers
 
-                    routerFactory.addHandlerByOperationId("listPets", routingContext ->
-                            routingContext
+
+                    //@router.get("/{pkg_manager}/{product}/{version}")
+                    //def get_metadata(pkg_manager: str, product: str, version: str):
+                    //    """
+                    //    Given a product and a version, retrieve all known metadata
+                    //
+                    //    Return: All known metadata for a revision
+                    //
+                    //    REST examples:
+                    //
+                    //        GET /api/mvn/org.slf4j:slf4j-api/1.7.29
+                    //        GET fasten.eu/api/pypi/numpy/1.15.2
+                    //    """
+                    //    pass
+
+                    routerFactory.addHandlerByOperationId("get_metadata_api__pkg_manager___product___version__get",
+                            routingContext -> routingContext
                                     .response() // <1>
                                     .setStatusCode(200)
+                                    //
                                     .putHeader(HttpHeaders.CONTENT_TYPE, "application/json") // <2>
-                                    .end(new JsonArray(getAllPets()).encode()) // <3>
+                                    .end(new JsonArray(getMetadata()).encode()) // <3>
                     );
+
+                    // routerFactory.addHandlerByOperationId("listPets", routingContext ->
+                    //         // TODO: maybe the URL thing goes here
+                    //         routingContext
+                    //                 .response() // <1>
+                    //                 .setStatusCode(200)
+                    //                 .putHeader(HttpHeaders.CONTENT_TYPE, "application/json") // <2>
+                    //                 .end(new JsonArray(getAllPets()).encode()) // <3>
+                    // );
 
                     routerFactory.addHandlerByOperationId("createPets", routingContext -> {
                         RequestParameters params = routingContext.get("parsedParameters"); // <1>
@@ -144,27 +169,8 @@ public class OpenAPIServer extends AbstractVerticle {
             vertx.deployVerticle(new OpenAPIServer());
         }
 
-        private List<JsonObject> getAllPets() {
-            return this.pets;
+        private List<JsonObject> getMetadata() {
+            return this.metadataResp;
         }
-
-        private void addPet(JsonObject pet) {
-            this.pets.add(pet);
-        }
-
-        // For documentation purpose - Spec sample method (?)
-        private void loadSpecSample(Future<Void> future) {
-
-            OpenAPI3RouterFactory.create(this.vertx, "petstore.yaml", ar -> {
-                if (ar.succeeded()) {
-                    OpenAPI3RouterFactory routerFactory = ar.result(); // <1>
-                } else {
-                    // Something went wrong during router factory initialization
-                    future.fail(ar.cause()); // <2>
-                }
-            });
-
-        }
-
 
 }
