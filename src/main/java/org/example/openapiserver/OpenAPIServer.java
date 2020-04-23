@@ -25,138 +25,76 @@ public class OpenAPIServer extends AbstractVerticle {
         HttpServer server;
         Logger logger = LoggerFactory.getLogger("OpenAPI3RouterFactory");
 
-        //    @Override
-        //    public void start(Future<Void> future) {
-        //        System.out.println("BasicVerticle started");
-        //        OpenAPI3RouterFactory.create(this.vertx, "petstore.yaml", ar -> {
-        //            if (ar.succeeded()) {
-        //                OpenAPI3RouterFactory routerFactory = ar.result(); // (1)
-        //            } else {
-        //                // Something went wrong during router factory initialization
-        //                future.fail(ar.cause()); // (2)
-        //            }
-        //        });
-        //    }
-        //
-        //    @Override
-        //    public void stop() throws Exception {
-        //        System.out.println("BasicVerticle stopped");
-        //    }
 
-        final List<JsonObject> metadataResp = new ArrayList<>(Arrays.asList(
-                new JsonObject().put("id", 1).put("name", "Fufi").put("tag", "ABC"),
-                new JsonObject().put("id", 2).put("name", "Garfield").put("tag", "XYZ"),
-                new JsonObject().put("id", 3).put("name", "Puffa")
-        ));
 
         @Override
         public void start(Future<Void> future) {
-            OpenAPI3RouterFactory.create(this.vertx, "openapispec.json", ar -> {
-                if (ar.succeeded()) {
-                    OpenAPI3RouterFactory routerFactory = ar.result();
+                OpenAPI3RouterFactory.create(this.vertx, "openapispec.json", ar -> {
+                        if (ar.succeeded()) {
+                                OpenAPI3RouterFactory routerFactory = ar.result();
 
-                    // Add routes handlers
+                                // Add routes handlerss
+                                // "/api/{pkg_manager}/{product}/{version}"
+                                // "api/pypi/numpy/1.12.3"
+                                routerFactory.addHandlerByOperationId("get_metadata_api__pkg_manager___product___version__get", routingContext -> {
+                                    RequestParameters params = routingContext.get("parserdParameters");
+                                    String pkg_manager = params.pathParameter("pkg_manager").getString();
+                                    String product = params.pathParameter("product").getString();
+                                    String version = params.pathParameter("version").getString();
+                                    // TODO: call a function to do the query to find the pkg_manager/product/version
+                                    String reply = dummyFunction(pkg_manager, product, version);
+                                    if (!reply.isEmpty())
+                                        routingContext
+                                            .response()
+                                            .setStatusCode(200)
+                                            .putHeader(HttpHeaders.CONTENT_TYPE, "application/json")
+                                            .end();
+                                    else
+                                        routingContext.fail(404, new Exception("Query not found!"));
+                                        // TODO: nice to have more specifc exceptions ex: pkg not found, product not found etc.
+                                });
 
+                                // Generate the router
+                                Router router = routerFactory.getRouter();
 
-                    //@router.get("/{pkg_manager}/{product}/{version}")
-                    //def get_metadata(pkg_manager: str, product: str, version: str):
-                    //    """
-                    //    Given a product and a version, retrieve all known metadata
-                    //
-                    //    Return: All known metadata for a revision
-                    //
-                    //    REST examples:
-                    //
-                    //        GET /api/mvn/org.slf4j:slf4j-api/1.7.29
-                    //        GET fasten.eu/api/pypi/numpy/1.15.2
-                    //    """
-                    //    pass
+                                // Handle errors
+                                router.errorHandler(404, routingContext -> {
+                                        JsonObject errorObject = new JsonObject()
+                                                .put("code", 404)
+                                                .put("message",
+                                                        (routingContext.failure() != null) ?
+                                                                routingContext.failure().getMessage() :
+                                                                "Not Found"
+                                                );
+                                        routingContext
+                                                .response()
+                                                .setStatusCode(404)
+                                                .putHeader(HttpHeaders.CONTENT_TYPE, "application/json")
+                                                .end(errorObject.encode());
+                                });
+                                router.errorHandler(400, routingContext -> {
+                                        JsonObject errorObject = new JsonObject()
+                                                .put("code", 400)
+                                                .put("message",
+                                                        (routingContext.failure() != null) ?
+                                                                routingContext.failure().getMessage() :
+                                                                "Validation Exception"
+                                                );
+                                        routingContext
+                                                .response()
+                                                .setStatusCode(400)
+                                                .putHeader(HttpHeaders.CONTENT_TYPE, "application/json")
+                                                .end(errorObject.encode());
+                                });
 
-                    routerFactory.addHandlerByOperationId("get_metadata_api__pkg_manager___product___version__get",
-                            routingContext -> routingContext
-                                    .response() // <1>
-                                    .setStatusCode(200)
-                                    //
-                                    .putHeader(HttpHeaders.CONTENT_TYPE, "application/json") // <2>
-                                    .end(new JsonArray(getMetadata()).encode()) // <3>
-                    );
+                                server = vertx.createHttpServer(new HttpServerOptions().setPort(8080).setHost("localhost"));
+                                server.requestHandler(router).listen();
 
-                    // routerFactory.addHandlerByOperationId("listPets", routingContext ->
-                    //         // TODO: maybe the URL thing goes here
-                    //         routingContext
-                    //                 .response() // <1>
-                    //                 .setStatusCode(200)
-                    //                 .putHeader(HttpHeaders.CONTENT_TYPE, "application/json") // <2>
-                    //                 .end(new JsonArray(getAllPets()).encode()) // <3>
-                    // );
-
-                    routerFactory.addHandlerByOperationId("createPets", routingContext -> {
-                        RequestParameters params = routingContext.get("parsedParameters"); // <1>
-                        JsonObject pet = params.body().getJsonObject(); // <2>
-                        addPet(pet);
-                        routingContext
-                                .response()
-                                .setStatusCode(200)
-                                .end(); // <3>
-                    });
-
-                    routerFactory.addHandlerByOperationId("showPetById", routingContext -> {
-                        RequestParameters params = routingContext.get("parsedParameters"); // <1>
-                        Integer id = params.pathParameter("petId").getInteger(); // <2>
-                        Optional<JsonObject> pet = getAllPets()
-                                .stream()
-                                .filter(p -> p.getInteger("id").equals(id))
-                                .findFirst(); // <3>
-                        if (pet.isPresent())
-                            routingContext
-                                    .response()
-                                    .setStatusCode(200)
-                                    .putHeader(HttpHeaders.CONTENT_TYPE, "application/json")
-                                    .end(pet.get().encode()); // <4>
-                        else
-                            routingContext.fail(404, new Exception("Pet not found")); // <5>
-                    });
-
-                    // Generate the router
-
-                    Router router = routerFactory.getRouter(); // <1>
-                    router.errorHandler(404, routingContext -> { // <2>
-                        JsonObject errorObject = new JsonObject() // <3>
-                                .put("code", 404)
-                                .put("message",
-                                        (routingContext.failure() != null) ?
-                                                routingContext.failure().getMessage() :
-                                                "Not Found"
-                                );
-                        routingContext
-                                .response()
-                                .setStatusCode(404)
-                                .putHeader(HttpHeaders.CONTENT_TYPE, "application/json")
-                                .end(errorObject.encode()); // <4>
-                    });
-                    router.errorHandler(400, routingContext -> {
-                        JsonObject errorObject = new JsonObject()
-                                .put("code", 400)
-                                .put("message",
-                                        (routingContext.failure() != null) ?
-                                                routingContext.failure().getMessage() :
-                                                "Validation Exception"
-                                );
-                        routingContext
-                                .response()
-                                .setStatusCode(400)
-                                .putHeader(HttpHeaders.CONTENT_TYPE, "application/json")
-                                .end(errorObject.encode());
-                    });
-
-                    server = vertx.createHttpServer(new HttpServerOptions().setPort(8080).setHost("localhost")); // <5>
-                    server.requestHandler(router).listen(); // <6>
-
-                    future.complete(); // Complete the verticle start
-                } else {
-                    future.fail(ar.cause()); // Fail the verticle start
-                }
-            });
+                                future.complete(); // Complete the verticle start
+                        } else {
+                                future.fail(ar.cause()); // Fail the verticle start
+                        }
+                });
         }
 
         @Override
@@ -169,8 +107,12 @@ public class OpenAPIServer extends AbstractVerticle {
             vertx.deployVerticle(new OpenAPIServer());
         }
 
-        private List<JsonObject> getMetadata() {
-            return this.metadataResp;
+        private String dummyFunction(String pkg_manager, String product, String version) {
+            return "It's working";
         }
+
+        /* private List<JsonObject> getMetadata() {
+            return this.metadataResp;
+        } */
 
 }
