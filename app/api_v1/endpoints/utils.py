@@ -1,5 +1,5 @@
-def connect_kafka():
-    # TODO: connect to kafka data plugin
+def connect_mddb():
+    # TODO: connect to metadata database plugin
     # pass
-    msg = "kafka connected"
+    msg = "metadata database connected"
     return msg
