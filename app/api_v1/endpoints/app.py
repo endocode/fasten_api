@@ -23,11 +23,6 @@ router = APIRouter()
 async def root():
     return {"message": "it's working!"}
 
-        # TODO: For all transitive queries:
-        # if you run `GET ...?transitive` the result will be error `422 Unprocessable Entity`
-        # Needs to implement either a handle for this error, or a way to force the api to understand 
-        # `GET ...?transitive` as `GET ...?transitive=true`
-
 @router.get("/{pkg_manager}/{product}/deps/{timestamp}")
 async def rebuild_dependency_net(pkg_manager: str, product: str, timestamp: int, transitive: Optional[bool] = False):
     """
