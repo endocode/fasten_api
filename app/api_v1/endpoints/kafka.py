@@ -94,7 +94,7 @@ def post_():
     REST examples:
 
         POST /api/mvn/org.slf4j:slf4j-api/1.7.29/impact
-        POST /api/mvn/org.slf4j:slf4j-api/1.7.29/impact?transitive
+        POST /api/mvn/org.slf4j:slf4j-api/1.7.29/impact?transitive=true
 
     The post body contains a FASTEN URI
     """
